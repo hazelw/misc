@@ -4,7 +4,16 @@ __author__ = 'Hazel'
 battleshipLengthsAvailable = [6,5,5,4]
 
 class GameBoard:
+    '''
+    Class that holds information about the game board (such as full and masked states, how many ships have been hit)
+    '''
+
     def __init__(self):
+        '''
+        :return: nil
+
+        Generates an empty game board.
+        '''
 
         self.gameBoard = []
         self.maskedBoard = []
@@ -22,16 +31,23 @@ class GameBoard:
             self.maskedBoard.append(maskedList)
 
 
-        print(self.gameBoard)
-
-
     def printBoard(self):
+        '''
+        :return: nil
+
+        Prints an uncensored version of the game board
+        '''
         for x in range(10):
             for y in range(10):
                 print(self.gameBoard[x][y], end='')
             print('')
 
     def printMaskedBoard(self):
+        '''
+        :return: nil
+
+        Prints a censored version of the game board
+        '''
         for x in range(10):
             for y in range(10):
                 print(self.maskedBoard[x][y], end='')
@@ -46,8 +62,6 @@ class GameBoard:
         :param direction: direction of new battleship - V/H for vertical/horizontal
         :return: true if adding the battleship was successful, false otherwise
         '''
-
-        print('Entering addBattleship')
 
         if direction == 'V':
             currentLoc = 0
@@ -68,8 +82,6 @@ class GameBoard:
         else:
             return False
 
-        print('Passed overlay test')
-
         # the new battleship does not intersect an old battleship - actually add the battleship
         if direction == 'V':
             currentLoc = 0
@@ -82,13 +94,18 @@ class GameBoard:
                 self.gameBoard[y][x+currentLoc] = 'o'
                 currentLoc += 1
 
-        print('Added battleship')
-
-        self.printBoard()
         return True
 
     def makeGuess(self, x, y):
-        print("guessed square: " + self.maskedBoard[y][x])
+        '''
+        :param x: x-coordinate of the player's/AI's guess
+        :param y: y-coordinate of the player's/AI's guess
+        :return: nil
+
+        Checks if the location has already been selected, returns an error message if so. If not, copies across the
+        value of the square to the censored game board and increments the number of hit ships on the board
+        '''
+
         if(self.maskedBoard[y][x] == '~'):
             self.maskedBoard[y][x] = self.gameBoard[y][x]
             if(self.gameBoard[y][x] == 'o'):
@@ -111,10 +128,14 @@ class Game:
         gameBoard = GameBoard()
         gameBoard.printBoard()
         self.setupplayer()
-        self.setupAI()
         self.playGame()
 
     def setupplayer(self):
+        '''
+        :return: nil
+
+        Captures all player information (eg. name, battleship locations)
+        '''
 
         for battleshipLength in battleshipLengthsAvailable:
             while True:
@@ -142,39 +163,54 @@ class Game:
                             print('Direction invalid')
 
                     if (player.gameBoard.addBattleship(x,y,battleshipLength,direction) == True):
+                        player.gameBoard.printBoard()
                         break
                 except BattleshipOutOfBoundsException:
                     print('Battleship out of bounds')
 
-    def setupAI(self):
-        pass
-
     def playGame(self):
-        print("player type: " + str(type(player)))
+        '''
+        :return: nil
+
+        Kicks off the game, requests guesses from the player.
+        '''
+        winner = None
 
         while(winner == None):
             guess = input('Your turn, select coordinates (of form x,y): ')
             player.makeGuess(guess)
 
-            if(winner != None):
-                print("And the winner is... " + winner.name)
-
-                break
-
-            print('AI made a guess!')
             if(ai.makeGuess() == True):
                 print('AI hit!')
             else:
                 print('AI missed')
 
+            winner = self.checkWinCondition()
+
+            if(winner != None):
+                print("And the winner is... " + winner.name)
+
+
     def checkWinCondition(self):
+        '''
+        :return: winner of the game, else None
+
+        Checks if the game has been won - if so, returns the winner of the game (either the Player object or the AI
+        object)
+        '''
+
         if(player.gameBoard.hitShips == 20):
-            winner = ai
+            return ai
         elif(ai.gameBoard.hitShips == 20):
-            winner = player
+            return player
+        else:
+            return None
 
 
 class Player:
+    '''
+    Represents the human player.
+    '''
     name = ''
     gameBoard = GameBoard()
 
@@ -183,21 +219,30 @@ class Player:
         :param name:
         :return: nil
 
-        initialises the player, gives them a name (aww)
+        Initialises the player, gives them a name (aww)
         '''
         self.name = name
 
     def makeGuess(self, guess):
-        print(guess)
+        '''
+        :param guess: x,y coordinates of the player's guess
+        :return: nil
+
+        Makes the guess input by the player.
+        '''
         guess = guess.split(',')
         x_guess = int(guess[0])
         y_guess = int(guess[1])
 
         AI.gameBoard.makeGuess(x_guess, y_guess)
+        print("Your view:")
         AI.gameBoard.printMaskedBoard()
 
 
 class AI(Player):
+    '''
+    Represents the AI player.
+    '''
     gameBoard = GameBoard()
 
     def __init__(self):
@@ -206,12 +251,15 @@ class AI(Player):
 
         initialises the AI, creates a bunch of battleships for it
         '''
-        print('Generating AI...')
         self.name = 'AI'
         self.generateBattleships()
 
     def generateBattleships(self):
-        print('Generating battleships')
+        '''
+        :return: nil
+
+        Generates battleships for the AI.
+        '''
         temp = 0
         for battleshipLengthAvailable in battleshipLengthsAvailable:
             direction = choice(['V','H'])
@@ -236,17 +284,20 @@ class AI(Player):
         makes a move up/down/left/right if battleship looks like it continues
         '''
 
+        print("AI's view: ")
+        print(player.gameBoard.printMaskedBoard())
+
         for i in range(10):
             for j in range(10):
                 if player.gameBoard.maskedBoard[i][j] == 'o':
                     if(i-1 >= 0 and player.gameBoard.maskedBoard[i-1][j] == '~'):
-                        return player.gameBoard.makeGuess(i-1,j)
+                        return player.gameBoard.makeGuess(j,i-1)
                     elif(i+1 < 10 and player.gameBoard.maskedBoard[i+1][j] == '~'):
-                        return player.gameBoard.makeGuess(i+1,j)
+                        return player.gameBoard.makeGuess(j,i+1)
                     elif(j-1 >= 0 and player.gameBoard.maskedBoard[i][j-1] == '~'):
-                        return player.gameBoard.makeGuess(i,j-1)
+                        return player.gameBoard.makeGuess(j-1,i)
                     elif(j+1 < 10 and player.gameBoard.maskedBoard[i][j+1] == '~'):
-                        return player.gameBoard.makeGuess(i,j+1)
+                        return player.gameBoard.makeGuess(j+1,i)
 
         maskedChoice = '~'
         choice_x = None
@@ -254,17 +305,20 @@ class AI(Player):
         while (maskedChoice == '~'):
             choice_x = randint(0,9)
             choice_y = randint(0,9)
+
             maskedChoice = player.gameBoard.makeGuess(choice_x,choice_y)
 
         return maskedChoice
 
 
 class BattleshipOutOfBoundsException(Exception):
+    '''
+    Exception thrown when someone attempts to add a battleship outside of the grid.
+    '''
     pass
 
 
 name = input("What is your name?")
 player = Player(name)
-winner = None
 ai = AI()
 Game()
